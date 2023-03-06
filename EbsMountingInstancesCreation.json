@@ -1,0 +1,65 @@
+{
+    "AWSTemplateFormatVersion":"2010-09-09",
+    "Description": "Creating Public  instance with AutoMounting",
+
+    "Resources":{
+        "PublicInstance":{
+            "Type" : "AWS::EC2::Instance",
+            "DependsOn":"Volume",
+            "Properties" : {
+                "BlockDeviceMappings" : [ {
+                    "DeviceName" : "/dev/xvda",
+                    "Ebs" : {
+                      "VolumeType" : "io1",
+                      "Iops" : "300",
+                      "DeleteOnTermination" : true,
+                      "VolumeSize" : "20"
+                    }
+                  } ],
+                "ImageId" : "ami-0aa7d40eeae50c9a9",
+                "InstanceType" : "t2.micro",
+                "SubnetId" : {"Fn::ImportValue":"PublicSubnetId"},
+                "SecurityGroupIds" : [{"Fn::ImportValue":"SecurityId"}],
+                "Tags" : [{
+                    "Key" : "Name",
+                    "Value": {"Fn::Join":["-",["Erpa","us-east-1a","Public","Instance"]]}
+                }],
+                "UserData" : { "Fn::Base64" : { "Fn::Join" : [ "", [
+                  "#!/bin/bash -x\n",
+                  "sudo su -\n",
+                  "sudo file -s /dev/sdf\n",
+                  "sudo mkfs -t xfs /dev/sdf\n",
+                  "sudo mkdir /mynewvolume\n",
+                  "sudo mount /dev/sdf /mynewvolume\n",
+                  "sudo cp /etc/fstab /etc/fstab.orig\n",
+                  "sudo echo -e \"/dev/sdf /mynewvolume   xfs    defaults,nofail 0 2\" >> /etc/fstab"
+                  ]]}}
+                }
+      
+            },
+        "Volume":{
+            "Type" : "AWS::EC2::Volume",
+            "Properties" : {
+                "AvailabilityZone" : {"Fn::ImportValue":"PublicSubnetAz"},
+                "Iops" : 300,
+                "Size" : 20,
+                "Tags":[{
+                    "Key" : "Name",
+                    "Value": { "Fn::Join" : [ "-", ["Erpa","Volume"] ] }
+                }],
+                "VolumeType" : "io1"
+              }
+           },
+           "VolumeEc2Attachment":{
+            "Type" : "AWS::EC2::VolumeAttachment",
+            "DependsOn":"PublicInstance",
+            "Properties" : {
+                "Device" : "/dev/sdf",
+                "InstanceId" : {"Ref":"PublicInstance"},
+                "VolumeId" : {"Fn::GetAtt":["Volume","VolumeId"]}
+              }
+          }
+}
+}
+
+

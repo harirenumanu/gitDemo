@@ -1,0 +1,90 @@
+{
+    "AWSTemplateFormatVersion":"2010-09-09",
+    "Description":"Creating Instances and AutoMounting the volumes ",
+    "Resources":{
+        "Vpc":{
+            "Type" : "AWS::EC2::VPC",
+            "Properties":{
+                "CidrBlock": "30.0.0.0/16",
+                "Tags":[{
+                    "Key" : "Name",
+                    "Value": { "Fn::Join" : [ "-", ["Erpa","NonProd","Vpc"] ] }
+                }]
+            }
+        },
+        "PublicSubnet":{
+            "Type" : "AWS::EC2::Subnet",
+            "Properties":{
+                "CidrBlock": { "Fn::Select" : [ 0, { "Fn::Cidr" : [{ "Fn::GetAtt" : [ "Vpc", "CidrBlock" ]}, 4, 8 ]}]},
+                "AvailabilityZone": {"Fn::Select" : [ 0, { "Fn::GetAZs" : { "Ref" : "AWS::Region" } }]},
+                "MapPublicIpOnLaunch":true,
+                "Tags":[{
+                    "Key" : "Name",
+                    "Value": { "Fn::Join" : [ "-", ["Erpa","Public","NonProd","Subnet-1"] ] }
+                }],
+                "VpcId": {"Ref":"Vpc"}
+            }
+        },
+        "PublicRouteTable":{
+            "Type": "AWS::EC2::RouteTable",
+            "Properties":{
+                "Tags":[{
+                    "Key" : "Name",
+                    "Value": { "Fn::Join" : [ "-", ["Erpa","Public","NonProd","RouteTable-1"] ] }
+                }],
+                "VpcId": {"Ref":"Vpc"}
+            }
+    
+          },
+          "PublicSubnetPublicRouteTableAssociation":{
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Ref":"PublicRouteTable"},
+                "SubnetId" :{"Ref":"PublicSubnet"}
+              }
+          },
+          "InternetGateway":{
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties":{
+                "Tags":[{
+                    "Key":"Name",
+                    "Value":{ "Fn::Join" : [ "-", ["Erpa","NonProd","InternetGateway"] ] }
+                }]
+            }
+        },
+        "IgwAttachToVpc":{
+            "Type" : "AWS::EC2::VPCGatewayAttachment",
+            "Properties" : {
+                "InternetGatewayId" : {"Ref":"InternetGateway"},
+                "VpcId" :  {"Ref":"Vpc"}              
+            }
+        },
+        "IgwAttachToRouteTable":{
+            "Type" : "AWS::EC2::Route",
+            "Properties" : {
+                "DestinationCidrBlock" : "0.0.0.0/0",
+                "GatewayId" : {"Ref":"InternetGateway"},
+                "RouteTableId" : {"Ref":"PublicRouteTable"}    
+            }
+        }
+        
+    },
+    "Outputs":{
+        "VpcId":{
+            "Value":{"Ref":"Vpc"},
+            "Export":{"Name":"Vpc"}
+        },
+
+        "PublicSubnetId":{
+            "Value": {"Ref":"PublicSubnet"},
+            "Export":{"Name":"PublicSubnetId"}
+        },
+        "PublicSubnetAz":{
+            "Value": {"Fn::GetAtt":["PublicSubnet","AvailabilityZone"]},
+            "Export":{"Name":"PublicSubnetAz"}
+        }
+
+
+
+    }
+}

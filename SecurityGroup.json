@@ -1,0 +1,43 @@
+{
+    "AWSTemplateFormatVersion":"2010-09-09",
+    "Description": "Creating SecurityGroups",
+    "Resources":{
+        "InstanceUsEast1aSg":{
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties":{
+                "Tags":[{
+                    "Key":"Name",
+                    "Value": {"Fn::Join":["-",["Erpa","instance","us-east-1a","SecurityGroup"]]}
+                }],
+                "GroupDescription" : "Creating the SecurityGroup",
+                    
+                    "SecurityGroupEgress" : [ {
+                        "CidrIp" : "0.0.0.0/0",
+                        "FromPort" : 0,
+                        "IpProtocol" : "-1",
+                        "ToPort" : 65535
+                    } ],
+                    "SecurityGroupIngress" : [
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": 22,
+                        "ToPort": 22,
+                        "IpProtocol":"tcp"
+                    }
+                       
+                ],
+                    "VpcId": {"Fn::ImportValue":"Vpc"}
+            }
+        }
+       
+    },
+    "Outputs":{
+        "SecurityId":{
+            "Value":{"Fn::GetAtt":["InstanceUsEast1aSg","GroupId"]},
+            "Export":{"Name":"SecurityId"}
+        }
+
+    }
+}
+        
+    
